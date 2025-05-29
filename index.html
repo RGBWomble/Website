@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="styles.css"> <title>Social Links</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Ensure the path is correct -->
+    <title>Social Links</title>
     <style>
-        /* Styles for body, canvas, container, social-button etc. from your original file remain here */
-        /* They are now mostly in styles.css, but if you had specific ones here, ensure they don't conflict or merge them */
         body {
             margin: 0;
             overflow: hidden;
-            background: black; /* This will be behind the overlay initially */
+            background: black;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -25,19 +24,19 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 1; /* Will be below overlay, above body bg */
+            z-index: 1;
         }
 
-        .container { /* Holds logo and social buttons */
-            display: flex; /* Will be set by JS after click */
+        .container {
+            display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
-            z-index: 2; /* Above canvas, below overlay */
+            z-index: 2;
             color: white;
             position: relative;
         }
-        /* other existing styles from your <style> block can remain if not moved to styles.css */
+
         .social-button {
             display: inline-block;
             margin: 10px;
@@ -76,7 +75,7 @@
             transition: opacity 0.5s ease, transform 0.5s ease;
             opacity: 0;
             transform: translate(-50%, 50%);
-            z-index: 10; /* Ensure notification is above other elements when shown */
+            z-index: 10;
             font-family: Arial, sans-serif;
             display: flex;
             align-items: center;
@@ -96,32 +95,16 @@
     </style>
 </head>
 <body>
-    <div id="clickToLoadOverlay">
-        <div id="clickToLoadMessage">Click to Load</div>
-    </div>
+    <canvas id="globeCanvas"></canvas>
 
-    <canvas id="globeCanvas" class="content-hidden"></canvas>
-
-    <audio id="background-music" loop crossOrigin="anonymous" autoplay>
+    <audio id="background-music" loop>
         <source src="background-music.mp3" type="audio/mp3">
         Your browser does not support the audio element.
     </audio>
 
-    <div class="container content-hidden">
-        <img class="logo" src="your-logo.png" alt="Logo"> <div class="social-buttons">
-            <a href="https://www.youtube.com/@RGBWomble" class="social-button" target="_blank"><span>YouTube</span></a>
-            <a href="https://steamcommunity.com/id/Airbus-A320/" class="social-button" target="_blank"><span>Steam</span></a>
-            <a href="https://vrchat.com/home/user/usr_c9024204-5d4a-4249-851f-fb7b2fab21b2" class="social-button" target="_blank"><span>VRChat</span></a>
-            <button class="social-button" id="discordButton"><span>Discord</span></button>
-        </div>
-    </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const clickToLoadOverlay = document.getElementById('clickToLoadOverlay');
-            const globeCanvas = document.getElementById('globeCanvas');
-            const mainContainer = document.querySelector('.container');
-
             const scene = new THREE.Scene();
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('globeCanvas'), alpha: true });
@@ -131,101 +114,34 @@
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
             }
-            // Call resizeCanvas initially if canvas is not hidden by 'content-hidden' affecting its dimensions
-            // For now, it's fine here, will be effective once canvas is shown.
 
-            const gridSize = 1000;
-            const divisions = 100;
-            const gridHelper = new THREE.GridHelper(gridSize, divisions, 0xf707d7, 0xf707d7);
+            resizeCanvas();
+
+            // Create a grid helper with the new color #f707d7
+            const gridSize = 1000; // Size of the grid
+            const divisions = 100;  // More divisions for a finer grid
+            const gridHelper = new THREE.GridHelper(gridSize, divisions, 0xf707d7, 0xf707d7); // Updated color
             gridHelper.position.y = 0;
-            gridHelper.position.z = 0;
+            gridHelper.position.z = 0; // Start positioned at Z = 0
             scene.add(gridHelper);
 
+            // Create the globe
             const geometry = new THREE.SphereGeometry(5, 32, 32);
             const material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
             const globe = new THREE.Mesh(geometry, material);
             globe.position.set(0, 10, 91);
             scene.add(globe);
 
-            camera.position.set(0, 10, 100);
+            camera.position.set(0, 10, 100); // Position camera
 
             let isDragging = false;
             let previousMousePosition = { x: 0, y: 0 };
             let velocity = { x: 0, y: 0 };
 
-            const audio = document.getElementById('background-music');
-            audio.volume = 0.25; 
-
-            let audioContext, analyser, sourceNode, dataArray;
-            let audioInitialized = false;
-
-            function initAudio() {
-                if (audioInitialized) return;
-                try {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    analyser = audioContext.createAnalyser();
-                    analyser.fftSize = 256;
-                    sourceNode = audioContext.createMediaElementSource(audio); //
-                    sourceNode.connect(analyser); //
-                    analyser.connect(audioContext.destination); //
-                    dataArray = new Uint8Array(analyser.frequencyBinCount);
-                    audioInitialized = true;
-                } catch (e) {
-                    console.error("Error initializing audio:", e);
-                }
-            }
-
-            function startAudioExperience() { // This function initializes and plays audio
-                if (!audioInitialized) {
-                    initAudio();
-                }
-
-                if (audioContext && audioContext.state === 'suspended') {
-                    audioContext.resume().then(() => {
-                        playAudio();
-                    }).catch(e => console.error("Error resuming AudioContext:", e));
-                } else if (audioContext && audioContext.state === 'running') {
-                    playAudio();
-                } else {
-                     if (audioInitialized) playAudio();
-                }
-            }
-
-            function playAudio() {
-                if (audio.paused) {
-                    audio.play().catch(error => {
-                        console.error("Audio play failed in playAudio function:", error);
-                    });
-                }
-            }
-
-            function revealSiteAndStartAudio() {
-                if (clickToLoadOverlay) {
-                    clickToLoadOverlay.classList.add('content-hidden'); // Hide the overlay
-                }
-                if (globeCanvas) {
-                    globeCanvas.classList.remove('content-hidden'); // Show canvas
-                }
-                if (mainContainer) {
-                    mainContainer.classList.remove('content-hidden'); // Show main content
-                    // Ensure container gets its 'flex' display style if not set otherwise
-                    mainContainer.style.display = 'flex'; 
-                }
-                
-                resizeCanvas(); // Call resize once elements are visible and have dimensions
-                startAudioExperience(); // Start audio and visualizer
-                animate(); // Ensure animation loop starts after reveal
-            }
-
-            if (clickToLoadOverlay) {
-                clickToLoadOverlay.addEventListener('click', revealSiteAndStartAudio, { once: true });
-            }
-
-
             window.addEventListener('mousedown', (event) => {
                 isDragging = true;
                 previousMousePosition = { x: event.clientX, y: event.clientY };
-                velocity = { x: 0, y: 0 };
+                velocity = { x: 0, y: 0 }; // Reset velocity on drag start
             });
 
             window.addEventListener('mousemove', (event) => {
@@ -234,122 +150,118 @@
                         x: event.clientX - previousMousePosition.x,
                         y: event.clientY - previousMousePosition.y,
                     };
+
                     globe.rotation.y += deltaMove.x * 0.01;
                     globe.rotation.x += deltaMove.y * 0.01;
+
                     previousMousePosition = { x: event.clientX, y: event.clientY };
+
+                    // Update velocity based on mouse movement
                     velocity.x = deltaMove.x * 0.01;
                     velocity.y = deltaMove.y * 0.01;
                 }
             });
 
             window.addEventListener('mouseup', () => {
-                isDragging = false;
+                isDragging = false; // Stop dragging
             });
 
-            window.addEventListener('resize', resizeCanvas); // Already here, good.
+            window.addEventListener('resize', resizeCanvas);
 
-            let animationFrameId = null; // To control animation loop start
             function animate() {
-                animationFrameId = requestAnimationFrame(animate);
+                requestAnimationFrame(animate);
 
-                if (audioInitialized && analyser) {
-                    analyser.getByteFrequencyData(dataArray);
-                    let bassSum = 0;
-                    for (let i = 0; i < 5; i++) {
-                        bassSum += dataArray[i];
-                    }
-                    const averageBass = bassSum / 5;
-                    const bassScaleFactor = 1 + (averageBass / 256) * 0.2; 
-                    globe.scale.set(bassScaleFactor, bassScaleFactor, bassScaleFactor);
+                // Continuous rotation for the globe
+                globe.rotation.y += 0.005; // Slow rotation on Y-axis
+                globe.rotation.x += 0.002; // Slow rotation on X-axis
 
-                    let overallVolumeSum = 0;
-                    for (let i = 0; i < dataArray.length; i++) {
-                        overallVolumeSum += dataArray[i];
-                    }
-                    const averageVolume = overallVolumeSum / dataArray.length;
-                    const intensity = averageVolume / 256; 
+                // Move the grid towards the camera
+                gridHelper.position.z += 0.1; // Move grid towards camera slowly
 
-                    const originalColor = new THREE.Color(0xf707d7);
-                    const pulsedColor = originalColor.clone().multiplyScalar(Math.max(0.5, intensity));
-                    gridHelper.material.color.set(pulsedColor);
-                    gridHelper.material.needsUpdate = true;
+                // Optionally control the grid's maximum distance
+                if (gridHelper.position.z >= 50) { // Adjust this value as needed
+                    gridHelper.position.z = 0; // Reset to start position for continuous movement
                 }
 
-                globe.rotation.y += 0.005;
-                globe.rotation.x += 0.002;
-                gridHelper.position.z += 0.1;
-                if (gridHelper.position.z >= 50) {
-                    gridHelper.position.z = 0;
-                }
-
+                // Apply velocity to globe rotation when not dragging
                 if (!isDragging) {
                     globe.rotation.y += velocity.x;
                     globe.rotation.x += velocity.y;
+
+                    // Dampen the velocity
                     velocity.x *= 0.95;
                     velocity.y *= 0.95;
+
+                    // Smoothly stop when the drag ends
                     if (Math.abs(velocity.x) < 0.001 && Math.abs(velocity.y) < 0.001) {
                         velocity.x = 0;
                         velocity.y = 0;
                     }
                 }
+
                 renderer.render(scene, camera);
             }
-            // Do NOT start animate() here globally. It will be started by revealSiteAndStartAudio.
-            // If animate() was already called globally, ensure it doesn't run before reveal.
-            // For safety, if animationFrameId is used, ensure it's managed. The current animate() calls itself.
 
+            animate();
+
+            const audio = document.getElementById('background-music');
+            audio.volume = 0.25;
+            audio.play();
+
+            // Notification for copying to clipboard
             const notification = document.createElement('div');
             notification.className = 'notification';
             notification.innerHTML = `<div class="globe-container"><canvas id="smallGlobeCanvas" width="30" height="30"></canvas></div> Copied To Clipboard`;
             document.body.appendChild(notification);
 
-            const discordButton = document.querySelector('#discordButton'); //
-            if (discordButton) { // Check if button exists before adding listener
-                discordButton.addEventListener('click', function (event) {
-                    event.preventDefault(); 
-                    // The startAudioExperience() is now primarily handled by the overlay click.
-                    // If audio is already initialized and playing, calling it again is okay due to checks.
-                    // However, the main purpose of this button is clipboard.
-                    if (!audioInitialized) { // Optionally, ensure audio context starts if somehow overlay was bypassed (unlikely)
-                        startAudioExperience();
-                    }
+            const discordButton = document.querySelector('#discordButton');
+            discordButton.addEventListener('click', function (event) {
+                event.preventDefault(); // Prevent the default action
+                navigator.clipboard.writeText('rgbwomble').then(() => {
+                    notification.classList.add('show');
 
-                    navigator.clipboard.writeText('rgbwomble').then(() => {
-                        notification.classList.add('show');
-                        const smallGlobeCanvas = document.getElementById('smallGlobeCanvas');
-                        const smallGlobeRenderer = new THREE.WebGLRenderer({ canvas: smallGlobeCanvas, alpha: true });
-                        smallGlobeRenderer.setSize(30, 30);
-                        const smallGlobeScene = new THREE.Scene();
-                        const smallGlobeCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-                        smallGlobeCamera.position.z = 1;
-                        const smallGlobeGeometry = new THREE.SphereGeometry(0.6, 6, 6);
-                        const smallGlobeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
-                        const smallGlobe = new THREE.Mesh(smallGlobeGeometry, smallGlobeMaterial);
-                        smallGlobe.position.set(0, 0, 0);
-                        smallGlobeScene.add(smallGlobe);
-                        function animateSmallGlobe() {
-                            requestAnimationFrame(animateSmallGlobe);
-                            smallGlobe.rotation.y += 0.02;
-                            smallGlobe.rotation.x += 0.01;
-                            smallGlobeRenderer.render(smallGlobeScene, smallGlobeCamera);
-                        }
-                        animateSmallGlobe();
-                        setTimeout(() => {
-                            notification.classList.remove('show');
-                            if (smallGlobeRenderer.domElement.parentElement) { // Clean up renderer and scene
-                                smallGlobeRenderer.dispose();
-                            }
-                            // Properly dispose of Three.js objects in small globe scene
-                            smallGlobeGeometry.dispose();
-                            smallGlobeMaterial.dispose();
-                            // smallGlobeScene.remove(smallGlobe) implicitly done if scene is not reused.
-                        }, 3000);
-                    }).catch(err => {
-                        console.error('Could not copy text: ', err);
-                    });
+                    // Small globe setup
+                    const smallGlobeCanvas = document.getElementById('smallGlobeCanvas');
+                    const smallGlobeRenderer = new THREE.WebGLRenderer({ canvas: smallGlobeCanvas, alpha: true });
+                    smallGlobeRenderer.setSize(30, 30);
+
+                    const smallGlobeScene = new THREE.Scene();
+                    const smallGlobeCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+                    smallGlobeCamera.position.z = 1;
+
+                    const smallGlobeGeometry = new THREE.SphereGeometry(0.6, 6, 6);
+                    const smallGlobeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+                    const smallGlobe = new THREE.Mesh(smallGlobeGeometry, smallGlobeMaterial);
+                    smallGlobe.position.set(0, 0, 0);
+                    smallGlobeScene.add(smallGlobe);
+
+                    function animateSmallGlobe() {
+                        requestAnimationFrame(animateSmallGlobe);
+                        smallGlobe.rotation.y += 0.02;
+                        smallGlobe.rotation.x += 0.01;
+                        smallGlobeRenderer.render(smallGlobeScene, smallGlobeCamera);
+                    }
+                    animateSmallGlobe();
+
+                    setTimeout(() => {
+                        notification.classList.remove('show');
+                        smallGlobeScene.remove(smallGlobe); // Remove the small globe when the notification disappears
+                    }, 3000);
+                }).catch(err => {
+                    console.error('Could not copy text: ', err);
                 });
-            }
+            });
         });
     </script>
+
+    <div class="container">
+        <img class="logo" src="your-logo.png" alt="Logo"> <!-- Replace with your logo source -->
+        <div class="social-buttons">
+            <a href="https://www.youtube.com/@RGBWomble" class="social-button" target="_blank"><span>YouTube</span></a>
+            <a href="https://steamcommunity.com/id/Airbus-A320/" class="social-button" target="_blank"><span>Steam</span></a>
+            <a href="https://vrchat.com/home/user/usr_1a8c7859-8ed5-47a4-a39b-8a802cbd4932" class="social-button" target="_blank"><span>VRChat</span></a>
+            <button class="social-button" id="discordButton"><span>Discord</span></button>
+        </div>
+    </div>
 </body>
 </html>
