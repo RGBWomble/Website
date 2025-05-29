@@ -96,7 +96,7 @@
 <body>
     <canvas id="globeCanvas"></canvas>
 
-    <audio id="background-music" loop crossOrigin="anonymous">
+    <audio id="background-music" loop crossOrigin="anonymous" autoplay>
         <source src="background-music.mp3" type="audio/mp3">
         Your browser does not support the audio element.
     </audio>
@@ -143,76 +143,61 @@
 
             function initAudio() {
                 if (audioInitialized) {
-                    // console.log("Audio already initialized."); // Kept for debugging if needed
                     return;
                 }
-                // console.log("Attempting to initialize AudioContext..."); // Kept for debugging
                 try {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    // console.log("AudioContext created. State:", audioContext.state); // Kept for debugging
-
                     analyser = audioContext.createAnalyser();
                     analyser.fftSize = 256;
-                    // console.log("Analyser created."); // Kept for debugging
-
-                    sourceNode = audioContext.createMediaElementSource(audio);
-                    // console.log("MediaElementSource created."); // Kept for debugging
-
-                    sourceNode.connect(analyser);
-                    // console.log("SourceNode connected to Analyser."); // Kept for debugging
-
-                    analyser.connect(audioContext.destination);
-                    // console.log("Analyser connected to destination."); // Kept for debugging
-
+                    sourceNode = audioContext.createMediaElementSource(audio); //
+                    sourceNode.connect(analyser); //
+                    analyser.connect(audioContext.destination); //
                     dataArray = new Uint8Array(analyser.frequencyBinCount);
                     audioInitialized = true;
-                    // console.log("Audio setup complete."); // Kept for debugging
                 } catch (e) {
                     console.error("Error initializing audio:", e);
                 }
             }
 
             function startAudioExperience() {
-                // console.log("startAudioExperience called."); // Kept for debugging
                 if (!audioInitialized) {
                     initAudio();
                 }
 
                 if (audioContext && audioContext.state === 'suspended') {
-                    // console.log("AudioContext is suspended, attempting to resume..."); // Kept for debugging
                     audioContext.resume().then(() => {
-                        // console.log("AudioContext resumed successfully. State:", audioContext.state); // Kept for debugging
                         playAudio();
                     }).catch(e => console.error("Error resuming AudioContext:", e));
                 } else if (audioContext && audioContext.state === 'running') {
-                    // console.log("AudioContext is already running."); // Kept for debugging
                     playAudio();
                 } else {
-                    // console.log("AudioContext not ready or in unexpected state for immediate play."); // Kept for debugging
                      if (audioInitialized) playAudio();
                 }
             }
 
             function playAudio() {
-                // console.log("Attempting to play audio..."); // Kept for debugging
-                audio.play().then(() => {
-                    // console.log("Audio playback started via audio.play()."); // Kept for debugging
-                }).catch(error => {
-                    console.error("Audio play failed:", error);
-                });
+                // Check if audio is already playing, to avoid interrupting if autoplay attribute worked.
+                // However, AudioContext might still need to be 'fed' if it wasn't running.
+                if (audio.paused) {
+                    audio.play().then(() => {
+                        // console.log("Audio playback started via audio.play() in playAudio function.");
+                    }).catch(error => {
+                        console.error("Audio play failed in playAudio function:", error);
+                    });
+                } else {
+                    // console.log("Audio already playing or autoplay kicked in.");
+                }
             }
 
             function userInteractionHandler() {
-                // console.log("User interaction detected (body click)."); // Kept for debugging
                 startAudioExperience();
             }
-            document.body.addEventListener('click', userInteractionHandler, { once: true });
+            document.body.addEventListener('click', userInteractionHandler, { once: true }); //
 
             const discordButtonInteraction = document.querySelector('#discordButton');
              if (discordButtonInteraction) {
                 discordButtonInteraction.addEventListener('click', function discordInteractionHandler() {
-                    // console.log("User interaction detected (Discord button click)."); // Kept for debugging
-                    startAudioExperience(); // This ensures audio starts if Discord button is first interaction
+                    startAudioExperience(); 
                 }, { once: true });
              }
 
@@ -248,22 +233,20 @@
                 if (audioInitialized && analyser) {
                     analyser.getByteFrequencyData(dataArray);
 
-                    // Globe scaling - CALMED DOWN
                     let bassSum = 0;
                     for (let i = 0; i < 5; i++) {
                         bassSum += dataArray[i];
                     }
                     const averageBass = bassSum / 5;
-                    const bassScaleFactor = 1 + (averageBass / 256) * 0.2; // Reduced from 0.5
+                    const bassScaleFactor = 1 + (averageBass / 256) * 0.2; 
                     globe.scale.set(bassScaleFactor, bassScaleFactor, bassScaleFactor);
 
-                    // Grid color intensity - CALMED DOWN
                     let overallVolumeSum = 0;
                     for (let i = 0; i < dataArray.length; i++) {
                         overallVolumeSum += dataArray[i];
                     }
                     const averageVolume = overallVolumeSum / dataArray.length;
-                    const intensity = averageVolume / 256; // Divisor increased from 128
+                    const intensity = averageVolume / 256; 
 
                     const originalColor = new THREE.Color(0xf707d7);
                     const pulsedColor = originalColor.clone().multiplyScalar(Math.max(0.5, intensity));
@@ -300,8 +283,6 @@
             const discordButton = document.querySelector('#discordButton');
             discordButton.addEventListener('click', function (event) {
                 event.preventDefault(); 
-                // The audio start logic is handled by the separate 'once' listener now.
-                // This click handler is primarily for the clipboard functionality.
                 navigator.clipboard.writeText('rgbwomble').then(() => {
                     notification.classList.add('show');
                     const smallGlobeCanvas = document.getElementById('smallGlobeCanvas');
